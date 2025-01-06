@@ -12,13 +12,11 @@ class Chunk_Operator(object):
         self.chunks = bitarray('')
         self.chunkPs = np.empty((0), dtype=f'<S{len(f'{self.chunk_amt()}')*4+8}')
         self.imgMlt= 5
-
-        self.mutate_settings = \
-            {"pointMutate":[0.75, 0.25, 0.25, 0.25, 0.25],
-             "chunkMutate":[0.9,0.1]}
     def area(self):
         return self.size[0]*self.size[1]
 
+    def dtype(self):
+        return f'<S{len(f'{self.chunk_amt()}')*4+8}'
     def chunk_amt(self):
         return int(len(self.chunks)/self.area())
     def create_chunk(self, lS=None, rS=None, tS=None, dS=None):
@@ -46,6 +44,9 @@ class Chunk_Operator(object):
         points += f'{locks}'
         self.chunkPs = np.append(self.chunkPs, points)
 
+    def delete_chunk(self, index):
+        self.chunks = self.chunks[:index*self.area()] + self.chunks[index*self.area()+(self.area()):]
+        self.chunkPs = np.delete(self.chunkPs, index)
     def create_chunk_imgs(self):
         imgs = []
         for r in range(self.chunk_amt()):
@@ -96,48 +97,111 @@ class Chunk_Operator(object):
         for idx,item in enumerate(orderList):
             self.set_chunk(idx, copyChunk[(item)*self.area():(item+1)*self.area()])
 
-    def mutate_chunk(self, index):
+    def crossover_chunk(self, idx1, idx2, settings):
+        #adds a chunk that crosses over two other chunks
+        sep_point = int(self.area() / 2) + random.randint(-settings["crs_range"], settings["crs_range"])
+        points = []
+        lp1 = self.chunkPs[idx1].split('-')
+        lp2 = self.chunkPs[idx2].split('-')
+        lock = ''
+        for r, point in enumerate(lp1[:-1]):
+            if int(point) < sep_point:
+                points.append(point)
+                lock += lp1[-1][r]
+        for r, point in enumerate(lp2[:-1]):
+            if int(point) >= sep_point:
+                points.append(point)
+                lock += lp2[-1][r]
+
+        crs_chunk = self.get_chunk(idx1)[:sep_point]+self.get_chunk(idx2)[sep_point:]
+        self.chunks += crs_chunk
+        self.chunkPs = np.append(self.chunkPs, '-'.join(points)+'-'+lock)
+
+
+    def mutate_chunk(self, index, settings):
+        #mutates an existing chunk and appends it
         chunk = self.get_chunk(index)
-        weights = self.mutate_settings["chunkMutate"]
+        points = self.chunkPs[index].split('-')
+
+        weights = [1-settings['m_cPower'],settings['m_cPower']]
         m_num = ''.join(str(random.choices([0, 1], weights=weights)[0]) for _ in range(self.area()))
 
         mutate_chunk = bitarray(m_num)
 
+        self.chunks += chunk
+
         for idx, cell in enumerate(chunk):
             if mutate_chunk[idx]==1:
-                self.set_chunk_cell_flat(index, idx, not self.get_chunk_cell_flat(index, idx))
-
-        points = self.chunkPs[index].split('-')
+                self.set_chunk_cell_flat(-1, idx, not self.get_chunk_cell_flat(-1, idx))
 
 
         for idx, point in enumerate(list(int(i) for i in points[:-1])):
-            weights = self.mutate_settings["pointMutate"].copy()
+            weights = [1-settings['m_pPower'],settings['m_pPower'],settings['m_pPower'],settings['m_pPower'],settings['m_pPower']]
             if points[-1][idx] in ['>','<']:
                 weights[0:2] = 0,0
             if points[-1][idx] in ['^','_']:
                 weights[2:4] = 0,0
-
             h = point+random.choices([0, 1,-1,self.size[0], -self.size[0]], weights=weights)[0]
             points[idx] = f'{min(max(0, h), self.area()-1)}'
 
-        self.chunkPs[index] = '-'.join(points)
+        self.chunkPs = np.append(self.chunkPs, '-'.join(points))
 cOP = Chunk_Operator((10,10))
 
+settings = \
+{"m_Amt": 3,
+ "m_cPower": 0.1,
+ "m_pPower": 0.25,
+ "init_Pop": 2,
+ "crs_Amt":1,
+ "crs_range": 10,
+ "pop_Per_Gen": 5,
+ "gen_Cap":50
+ }
 
-for r in range(100):
+
+for r in range(settings['init_Pop']):
     cOP.create_chunk()
 
 imgs = cOP.create_chunk_imgs()
 
 window = pg.display.set_mode((500,500))
 
-imgs = cOP.create_chunk_imgs()
+
 
 def gen_cycle():
-    #---SORT---
-    sortArray = np.empty(shape=(cOP.chunk_amt(), 2), dtype=np.uint32)
+    # ---CROSSOVER---
+    for r in range(0, settings["crs_Amt"] * 2, 2):
+        cOP.crossover_chunk(r, r + 1, settings)
 
+    # ---MUTATE---
+    for r in range(settings['m_Amt']):
+        cOP.mutate_chunk(r, settings)
+
+    # ---NEW CHUNKS---
+    for _ in range(settings['pop_Per_Gen']):
+        cOP.create_chunk()
+
+    # --- REMOVE DUPLICATES ---
+    new_points = np.empty((0), dtype=cOP.dtype())
+    possible_dupes = []
+    for r, points in enumerate(cOP.chunkPs):
+        if points not in new_points:
+            new_points = np.append(new_points, points)
+        else:
+            x = int(np.where(new_points == points)[0][0])
+            possible_dupes.append([r, x])
+
+    actual_dupes = []
+    for dupe in possible_dupes:
+        if cOP.get_chunk(dupe[0])==cOP.get_chunk(dupe[1]):
+            actual_dupes.append(dupe[0])
+    for dupe in actual_dupes:
+        cOP.delete_chunk(dupe)
+
+    # ---SORT and CLEAR---
+    sortArray = np.empty(shape=(cOP.chunk_amt(), 2), dtype=np.uint32)
     for idx, item in enumerate(sortArray):
+        #value that it sorts by
         sortArray[idx] = [cOP.get_chunk(idx).count(1), idx]
 
     sortArgs = sortArray[:, 0].argsort(kind='quicksort')
@@ -146,11 +210,13 @@ def gen_cycle():
     cOP.chunkPs = cOP.chunkPs[sortArgs]
 
     cOP.reorder_chunks(sortArray[:, 1])
-    #---MUTATE---
 
-    #---CROSSOVERS---
+    # ---LIMIT---
+    cOP.chunkPs = cOP.chunkPs[:settings['gen_Cap']]
+    cOP.chunks = cOP.chunks[:settings['gen_Cap']*cOP.area()]
 
-    imgs = cOP.create_chunk_imgs()
+    return cOP.create_chunk_imgs()
+
 while True:
     window.fill((60,60,60))
 
@@ -169,18 +235,7 @@ while True:
             exit()
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_e:
-                sortArray = np.empty(shape=(cOP.chunk_amt(), 2), dtype=np.uint32)
-
-                for idx, item in enumerate(sortArray):
-                    sortArray[idx] = [cOP.get_chunk(idx).count(1), idx]
-
-                sortArgs = sortArray[:, 0].argsort(kind='quicksort')
-
-                sortArray = sortArray[sortArgs]
-                cOP.chunkPs = cOP.chunkPs[sortArgs]
-
-                cOP.reorder_chunks(sortArray[:,1])
-                imgs = cOP.create_chunk_imgs()
+                imgs = gen_cycle()
             if event.key == pg.K_m:
                 for idx in range(cOP.chunk_amt()):
                     cOP.mutate_chunk(idx)
