@@ -4,8 +4,8 @@ from bitarray import bitarray
 import math
 
 size = 10
-grid = bitarray('1011111010010110101110111000000000110000110100101011111011010010100111110001100101101111000101100100')
-ps = '34-32-0000'
+grid = bitarray('0110100010111101100010011011010101010110101110110011100110110001010001010000110110110100010010101000')
+ps = '75-18-66-45-0000'
 
 class A_Star(object):
     def __init__(self):
@@ -91,7 +91,7 @@ class A_Star(object):
 
 
         self.cur = self.end
-        while False:
+        while True:
             if self.cur == self.start:
                 break
             else:
@@ -99,6 +99,7 @@ class A_Star(object):
                 if valid_sur == []:
                     self.whitelist.remove(self.cur)
                     self.cur = self.end
+                    self.path=[]
                 else:
                     self.path.append(self.cur)
                     HCosts = [(self.HBoard[f'{item}'], item) for item in valid_sur]
@@ -118,7 +119,6 @@ from itertools import combinations
 
 for set in list(combinations(ps.split('-')[:-1],2)):
     paths.append(AStar.get_path(grid, int(set[0]), int(set[1]), [size,size]))
-print(paths)
 
 while False:
     window.fill((60,60,60))
@@ -135,10 +135,11 @@ while False:
             color = (255,0,0)
         pygame.draw.rect(window, color, (x*m+10,y*m+10,m,m))
 
-        for p, path in enumerate(paths):
-            if idx in path:
-                pygame.draw.rect(window, (0,(p+1)*50,0), (x * m + 10, y * m + 10, m, m), 1)
         if idx in AStar.closedList:
             pygame.draw.rect(window, (0, 0,255), (x * m + 10, y * m + 10, m, m), 1)
+        for p, path in enumerate(paths):
+            if idx in path:
+                pygame.draw.rect(window, (0,255,0), (x * m + 10, y * m + 10, m, m), 1)
+
 
     pygame.display.flip()
