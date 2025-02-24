@@ -121,7 +121,7 @@ class Chunk_Operator(object):
         lp2 = self.chunkPs[idx2].split('-')
         lock = ''
         for r, point in enumerate(lp1[:-1]):
-            if int(point) < sep_point:
+            if point!='' and int(point) < sep_point:
                 points.append(point)
                 lock += lp1[-1][r]
         for r, point in enumerate(lp2[:-1]):

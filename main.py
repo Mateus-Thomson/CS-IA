@@ -10,12 +10,14 @@ from itertools import combinations
 from chunk_operator import *
 from pathfinding import *
 from wave_collapse import *
+from user_input import *
 
 pg.font.init()
-cOP = Chunk_Operator((10,10))
 
 settings = \
-{"m_Amt": 20,
+{"chunk_size":10,
+ "board_size":5,
+ "m_Amt": 20,
  "m_cPower": 0.5,
  "m_pPower": 0.5,
  "init_Pop": 10,
@@ -25,8 +27,10 @@ settings = \
  "pop_Cap":15,
  "gen_Cap":10,
  }
+settings = user_input(settings)
+print(settings)
 
-
+cOP = Chunk_Operator((settings["chunk_size"],settings["chunk_size"]))
 
 
 imgs = cOP.create_chunk_imgs()
@@ -36,7 +40,7 @@ tab1 = pygame.surface.Surface((500,500))
 tab2 = pygame.surface.Surface((500,500))
 active_tab = 1
 
-wc = WaveChunks(cOP.size,(5,5))
+wc = WaveChunks(cOP.size,(settings["board_size"],settings["board_size"]))
 AStar = A_Star()
 
 generation = 0
@@ -55,8 +59,6 @@ def gen_cycle():
     # ---CROSSOVER---
     for r in range(0, settings["crs_Amt"] * 2, 2):
         cOP.crossover_chunk(r, r + 1, settings)
-
-
 
     # ---NEW CHUNKS---
     for _ in range(settings['pop_Per_Gen']):
@@ -105,10 +107,6 @@ def gen_cycle():
     cOP.chunkPs = valid_points
     cOP.reorder_chunks(list(map(lambda x:x[1],path_lengths)))
 
-
-
-
-
     return cOP.create_chunk_imgs()
 
 gfont = pg.font.SysFont("Arial", 24)
@@ -117,6 +115,8 @@ def gen_text():
 gtext = gen_text()
 
 other_imgs = []
+
+
 while True:
     tab1.fill((0,60,60))
     tab2.fill((60, 60, 0))
