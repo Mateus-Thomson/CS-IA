@@ -1,8 +1,7 @@
 from tkinter import *
 
 can_float = ['m_cPower', 'm_pPower']
-format_options = ["json","txt","image","tiled"]
-format_idx = 0
+format_options = ["json","txt","image","tmx"]
 
 def user_input(settings):
     inputWindow = Tk()

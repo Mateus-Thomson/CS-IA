@@ -137,14 +137,12 @@ while True:
             x = 0
             y += cOP.size[1] * cOP.imgMlt + 2
 
-    if generation>settings["gen_Cap"]:
+    if generation>=settings["gen_Cap"]:
         wc.append_chunk(cOP.get_chunk(0), cOP.chunkPs[0])
         generation=0
         cOP.chunks = bitarray('')
         cOP.chunkPs = cOP.create_empty_points()
         other_imgs = wc.create_chunk_imgs()
-        print(wc.cr)
-
         #other_imgs.append(imgs[0])
 
     #tab 2
@@ -155,7 +153,7 @@ while True:
 
 
     if not 0 in wc.board_filled:
-        print(wc.board_filled)
+        print(wc.chunks)
         quit()
 
     for event in pg.event.get():
