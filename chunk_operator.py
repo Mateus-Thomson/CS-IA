@@ -113,6 +113,10 @@ class Chunk_Operator(object):
         for idx,item in enumerate(orderList):
             self.set_chunk(idx, copyChunk[(item)*self.area():(item+1)*self.area()])
 
+    def to_2d_point(self, flat):
+        return [int(flat)%self.size[0], int(flat)//self.size[0]]
+    def to_flat_point(self, tuple):
+        return tuple[0]+tuple[1]*self.size[0]
     def crossover_chunk(self, idx1, idx2, settings):
         #adds a chunk that crosses over two other chunks
         sep_point = int(self.area() / 2) + random.randint(-settings["crs_range"], settings["crs_range"])

@@ -38,6 +38,8 @@ imgs = cOP.create_chunk_imgs()
 window = pg.display.set_mode((500,500))
 tab1 = pygame.surface.Surface((500,500))
 tab2 = pygame.surface.Surface((500,500))
+tab3 = pygame.surface.Surface((500,500))
+
 active_tab = 1
 
 wc = WaveChunks(cOP.size,(settings["board_size"],settings["board_size"]))
@@ -116,10 +118,11 @@ gtext = gen_text()
 
 other_imgs = []
 
-
+tab3.fill((0, 60, 60))
 while True:
     tab1.fill((0,60,60))
     tab2.fill((60, 60, 0))
+
     #tab 1
 
     if 0 in wc.board_filled:
@@ -153,8 +156,11 @@ while True:
 
 
     if not 0 in wc.board_filled:
-        print(wc.chunks)
-        quit()
+        tab3.fill((0, 60, 60))
+        ex_chunk, ex_points, render = wc.export_chunk()
+        tab3.blit(render, (0, 0))
+
+        #quit()
 
     for event in pg.event.get():
         if event.type == pg.QUIT:
@@ -171,6 +177,8 @@ while True:
                 active_tab = 1
             if event.key == pg.K_2:
                 active_tab = 2
+            if event.key == pg.K_3:
+                active_tab = 3
 
     if active_tab == 1:
         window.blit(tab1, (0,0))

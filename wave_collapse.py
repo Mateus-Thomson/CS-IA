@@ -91,6 +91,28 @@ class WaveChunks(Chunk_Operator):
 
         self.make_new_request()
 
+    def export_chunk(self):
+        export_chunk = bitarray('')
+        export_points  = []
+        for layer_idx in range(0,self.b_size[0]*self.b_size[1],self.b_size[0]):
+            layers = list(range(layer_idx,layer_idx+self.b_size[0]))
+            for y in range(self.b_size[1]):
+                for layer in layers:
+                    export_chunk += self.get_chunk_row(layer, y)
+                    for x in range(self.b_size[0]):
+                        for point in self.chunkPs[layer].split('-')[:-1]:
+                            true_point = self.to_2d_point(point)
+                            true_point[0] += x*self.size[0]
+                            true_point[1] += y*self.size[0]
+                            export_points.append(self.to_flat_point(true_point))
+        render_exchunk=pygame.surface.Surface((self.size[0]*self.b_size[0],self.size[1]*self.b_size[1]))
+        for y in range(self.size[1]*self.b_size[1]):
+            for x in range(self.size[1] * self.b_size[1]):
+                flat = self.to_flat_point(x,y)
+                r = export_chunk[flat]
+                render_exchunk.set_at((x, y), (255*r, 255*r, 255*r))
+                if flat in export_points: render_exchunk.set_at((x, y), (255,0,0))
+        return export_chunk, export_points, render_exchunk
     def create_chunk_imgs(self):
         imgs = []
         for idx in range(self.b_size[0]*self.b_size[1]):
@@ -100,14 +122,10 @@ class WaveChunks(Chunk_Operator):
 
                 for y in range(self.size[1]):
                     for x in range(self.size[0]):
-                        if  self.get_chunk_cell(idx, y, x):
-                            img.set_at((x, y),(60,40,40))
-
-                        img.set_at((x, y), (255, 255, 255) if self.get_chunk_cell(idx, y, x)==1 else (0, 0, 0))
+                        r = self.get_chunk_cell(idx, y, x)
+                        img.set_at((x, y), (255*r, 255*r, 255*r))
 
                 points = self.chunkPs[idx].split('-')
-                #print(self.chunkPs[idx])
-                img.set_at((0,0), (255, 0, 0))
 
                 for point in list(int(i) for i in points[:-1]):
                     img.set_at((point % self.size[0], point // self.size[1]), (255, 0, 0))
