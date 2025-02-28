@@ -1,6 +1,8 @@
 import random
 
 from bitarray import bitarray
+from itertools import combinations
+from pathfinding import *
 
 from chunk_operator import *
 class WaveChunks(Chunk_Operator):
@@ -91,28 +93,27 @@ class WaveChunks(Chunk_Operator):
 
         self.make_new_request()
 
-    def export_chunk(self):
+    def export_chunk(self, imgs):
         export_chunk = bitarray('')
         export_points  = []
-        for layer_idx in range(0,self.b_size[0]*self.b_size[1],self.b_size[0]):
-            layers = list(range(layer_idx,layer_idx+self.b_size[0]))
-            for y in range(self.b_size[1]):
-                for layer in layers:
-                    export_chunk += self.get_chunk_row(layer, y)
-                    for x in range(self.b_size[0]):
-                        for point in self.chunkPs[layer].split('-')[:-1]:
-                            true_point = self.to_2d_point(point)
-                            true_point[0] += x*self.size[0]
-                            true_point[1] += y*self.size[0]
-                            export_points.append(self.to_flat_point(true_point))
-        render_exchunk=pygame.surface.Surface((self.size[0]*self.b_size[0],self.size[1]*self.b_size[1]))
-        for y in range(self.size[1]*self.b_size[1]):
-            for x in range(self.size[1] * self.b_size[1]):
-                flat = self.to_flat_point(x,y)
-                r = export_chunk[flat]
-                render_exchunk.set_at((x, y), (255*r, 255*r, 255*r))
-                if flat in export_points: render_exchunk.set_at((x, y), (255,0,0))
+        render_exchunk = pygame.surface.Surface((self.size[0]*self.b_size[0],self.size[1]*self.b_size[1]))
+        print(imgs)
+        for i, img in enumerate(imgs):
+            render_exchunk.blit(pygame.transform.scale(img, (img.get_width()/self.imgMlt,img.get_height()/self.imgMlt)),
+                      ((i % self.b_size[0]) * (self.size[0]), (i // self.b_size[1]) * (self.size[1])))
+
+        for y in range(render_exchunk.get_height()):
+            for x in range(render_exchunk.get_width()):
+                if render_exchunk.get_at(x,y)==(255,255,255): export_chunk+='0'
+                else:export_chunk+='1'
+                if render_exchunk.get_at(x,y)==(255,0,0):export_points.append([x,y])
+
+        for set in list(combinations(export_points, 2)):
+            print(set)
+
+        render_exchunk = pygame.transform.scale(render_exchunk, (render_exchunk.get_width() * self.imgMlt, render_exchunk.get_height() * self.imgMlt))
         return export_chunk, export_points, render_exchunk
+
     def create_chunk_imgs(self):
         imgs = []
         for idx in range(self.b_size[0]*self.b_size[1]):

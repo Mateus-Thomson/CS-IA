@@ -151,13 +151,12 @@ while True:
     #tab 2
 
     for i, o_img in enumerate(other_imgs):
-
-        tab2.blit(o_img, ((i%wc.b_size[0])*(wc.size[0]+1)*wc.imgMlt, (i//wc.b_size[1])*(wc.size[1]+1)*wc.imgMlt))
+        tab2.blit(o_img, ((i%wc.b_size[0])*(wc.size[0])*wc.imgMlt, (i//wc.b_size[1])*(wc.size[1])*wc.imgMlt))
 
 
     if not 0 in wc.board_filled:
         tab3.fill((0, 60, 60))
-        ex_chunk, ex_points, render = wc.export_chunk()
+        ex_chunk, ex_points, render = wc.export_chunk(other_imgs)
         tab3.blit(render, (0, 0))
 
         #quit()
@@ -184,6 +183,9 @@ while True:
         window.blit(tab1, (0,0))
     elif active_tab == 2:
         window.blit(tab2, (0, 0))
+    elif active_tab == 3:
+        window.blit(tab3, (0, 0))
     pg.display.flip()
+
 
 

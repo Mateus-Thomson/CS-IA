@@ -114,7 +114,7 @@ class Chunk_Operator(object):
             self.set_chunk(idx, copyChunk[(item)*self.area():(item+1)*self.area()])
 
     def to_2d_point(self, flat):
-        return [int(flat)%self.size[0], int(flat)//self.size[0]]
+        return [int(flat)//self.size[0], int(flat)%self.size[0]]
     def to_flat_point(self, tuple):
         return tuple[0]+tuple[1]*self.size[0]
     def crossover_chunk(self, idx1, idx2, settings):
@@ -129,7 +129,7 @@ class Chunk_Operator(object):
                 points.append(point)
                 lock += lp1[-1][r]
         for r, point in enumerate(lp2[:-1]):
-            if int(point) >= sep_point:
+            if point!='' and int(point) >= sep_point:
                 points.append(point)
                 lock += lp2[-1][r]
 
