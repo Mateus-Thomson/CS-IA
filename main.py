@@ -2,6 +2,7 @@ import numpy
 import numpy as np
 import pygame as pg
 import sys, time, random
+import json
 
 import pygame.surface
 from bitarray import bitarray
@@ -26,8 +27,10 @@ settings = \
  "pop_Per_Gen": 20,
  "pop_Cap":15,
  "gen_Cap":10,
+ "maxPoints":20,
+ "minDistMulti":1
  }
-settings = user_input(settings)
+settings, format = user_input(settings)
 print(settings)
 
 cOP = Chunk_Operator((settings["chunk_size"],settings["chunk_size"]))
@@ -119,6 +122,7 @@ gtext = gen_text()
 other_imgs = []
 
 tab3.fill((0, 60, 60))
+done = False
 while True:
     tab1.fill((0,60,60))
     tab2.fill((60, 60, 0))
@@ -154,11 +158,20 @@ while True:
         tab2.blit(o_img, ((i%wc.b_size[0])*(wc.size[0])*wc.imgMlt, (i//wc.b_size[1])*(wc.size[1])*wc.imgMlt))
 
 
-    if not 0 in wc.board_filled:
+    if not 0 in wc.board_filled and not done:
+        done=True
         tab3.fill((0, 60, 60))
-        ex_chunk, ex_points, render = wc.export_chunk(other_imgs)
+        ex_chunk, ex_points, render = wc.export_chunk(other_imgs, settings)
         tab3.blit(render, (0, 0))
 
+        if format=="json":
+            with open('export.json', 'w') as f:
+                json.dump({"chunk": ex_chunk.to01(), "points": ex_points, "size":wc.full_size()}, f, indent=4)
+        if format=="txt":
+            with open('export.txt', 'w') as f:
+                f.write(f"chunk:\n{ex_chunk.to01()}\npoints:\n{ex_points}\nsize:\n{wc.full_size()}\n")
+        if format=="png":
+            pg.image.save(render, 'export.png')
         #quit()
 
     for event in pg.event.get():

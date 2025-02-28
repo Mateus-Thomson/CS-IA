@@ -3,6 +3,7 @@ import random
 from bitarray import bitarray
 from itertools import combinations
 from pathfinding import *
+import math
 
 from chunk_operator import *
 class WaveChunks(Chunk_Operator):
@@ -23,7 +24,8 @@ class WaveChunks(Chunk_Operator):
             "lkU":None,
             "lkD":self.area()-random.randint(1,c_size[0]),
         }
-        print(self.size)
+    def full_size(self):
+        return [self.size[0]*self.b_size[0],self.size[1]*self.b_size[1]]
 
     def find_empty_chunks(self):
         empties = []
@@ -90,26 +92,47 @@ class WaveChunks(Chunk_Operator):
         self.set_chunk(self.cur_chunk, new_chunk)
         self.board_filled[self.cur_chunk] = 1
         self.chunkPs[self.cur_chunk] = point
-
         self.make_new_request()
 
-    def export_chunk(self, imgs):
+    def export_chunk(self, imgs, settings):
         export_chunk = bitarray('')
         export_points  = []
-        render_exchunk = pygame.surface.Surface((self.size[0]*self.b_size[0],self.size[1]*self.b_size[1]))
-        print(imgs)
+        render_exchunk = pygame.surface.Surface(self.full_size())
         for i, img in enumerate(imgs):
-            render_exchunk.blit(pygame.transform.scale(img, (img.get_width()/self.imgMlt,img.get_height()/self.imgMlt)),
-                      ((i % self.b_size[0]) * (self.size[0]), (i // self.b_size[1]) * (self.size[1])))
+            t_img = pygame.transform.scale(img, (img.get_width() / self.imgMlt, img.get_height() / self.imgMlt))
+            points = self.chunkPs[i].split('-')
+            for p, point in enumerate(points[:-1]):
+                print(point, points[-1])
+            render_exchunk.blit(t_img,((i % self.b_size[0]) * (self.size[0]), (i // self.b_size[1]) * (self.size[1])))
 
         for y in range(render_exchunk.get_height()):
             for x in range(render_exchunk.get_width()):
-                if render_exchunk.get_at(x,y)==(255,255,255): export_chunk+='0'
-                else:export_chunk+='1'
-                if render_exchunk.get_at(x,y)==(255,0,0):export_points.append([x,y])
+                if render_exchunk.get_at((x,y))==(255,255,255): export_chunk+='1'
+                else:export_chunk+='0'
+        for y in range(render_exchunk.get_height()):
+            for x in range(render_exchunk.get_width()):
+                if render_exchunk.get_at((x,y))==(255,0,0):
+                    export_chunk[self.to_flat_point([x,y])] = 0
+                    export_points.append([x,y])
 
+        if len(export_points)>settings["maxPoints"]:
+            export_points = export_points[:settings["maxPoints"]]
+
+        for point in export_points:
+            render_exchunk.set_at(point, (60,60,60))
+
+        optimal_path = []
+        optimal_length = 0
         for set in list(combinations(export_points, 2)):
+            if math.dist(set[0], set[1])>self.size[0]*settings['minDistMulti']:
+                path = AStar.get_path(export_chunk, self.to_flat_point(set[0]), self.to_flat_point(set[1]), self.full_size())
+                if len(path)>optimal_length:
+                    optimal_path = [set[0],set[1]]
+                    optimal_length = len(path)
             print(set)
+
+        for set in optimal_path:
+            render_exchunk.set_at(set, (255,255,0))
 
         render_exchunk = pygame.transform.scale(render_exchunk, (render_exchunk.get_width() * self.imgMlt, render_exchunk.get_height() * self.imgMlt))
         return export_chunk, export_points, render_exchunk

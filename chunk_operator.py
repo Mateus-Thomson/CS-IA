@@ -27,7 +27,7 @@ class Chunk_Operator(object):
         for idx in range(self.chunk_amt()):
             points = self.chunkPs[idx].split('-')[:-1]
             for point in points:
-                self.set_chunk_cell_flat(idx, int(point), 0)
+                if point!='':self.set_chunk_cell_flat(idx, int(point), 0)
 
             #self.chunkPs[idx] = '-'.join(points) + '-' + self.chunkPs[idx][:-4]
     def create_chunk(self, lS=None, rS=None, tS=None, dS=None):
@@ -125,11 +125,11 @@ class Chunk_Operator(object):
         lp2 = self.chunkPs[idx2].split('-')
         lock = ''
         for r, point in enumerate(lp1[:-1]):
-            if point!='' and int(point) < sep_point:
+            if point!='' and int(point) < sep_point and r<len(lp1[-1]):
                 points.append(point)
                 lock += lp1[-1][r]
         for r, point in enumerate(lp2[:-1]):
-            if point!='' and int(point) >= sep_point:
+            if point!='' and int(point) >= sep_point and r<len(lp2[-1]):
                 points.append(point)
                 lock += lp2[-1][r]
 

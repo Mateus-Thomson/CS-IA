@@ -58,4 +58,4 @@ def user_input(settings):
     btn.grid(column=2, row=0)
 
     inputWindow.mainloop()
-    return settings
+    return settings, format_options[value.get()]
