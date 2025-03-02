@@ -35,7 +35,7 @@ def user_input(settings):
             try: # check validation
                 if name in can_float: float(input.get())
                 else: int(input.get())
-                if int(input.get())<=0: # numbers cannot be below 0
+                if float(input.get())<=0: # numbers cannot be below 0
                     error_msg.config(text=(f"{name} is below 0."))
                     valid = False
                     break

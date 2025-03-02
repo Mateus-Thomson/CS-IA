@@ -1,6 +1,6 @@
-from libs import *
-from chunk_operator import *
-from pathfinding import *
+from scripts.libs import *
+from scripts.chunk_operator import *
+from scripts.pathfinding import *
 
 class WaveChunks(Chunk_Operator):
     '''Operates the wave collapse algorithm. Extends Chunk_Operator.'''

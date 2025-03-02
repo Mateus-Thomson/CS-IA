@@ -1,5 +1,5 @@
-from libs import *
-from base import *
+from scripts.libs import *
+from scripts.base import *
 
 class A_Star(Base):
     '''Class responsible for finding the best path from one point to another.'''

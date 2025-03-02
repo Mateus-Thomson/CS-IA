@@ -1,8 +1,6 @@
-from wave_collapse import *
-from user_input import *
-from cycle import *
-
-from libs import *
+from scripts.wave_collapse import *
+from scripts.user_input import *
+from scripts.cycle import *
 
 pg.font.init()
 

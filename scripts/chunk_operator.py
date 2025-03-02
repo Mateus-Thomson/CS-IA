@@ -1,5 +1,5 @@
-from libs import *
-from base import *
+from scripts.libs import *
+from scripts.base import *
 
 class Chunk_Operator(Base):
     '''Operates and handles all the chunks. Every command needed to process the chunks goes here. Extends Base.'''

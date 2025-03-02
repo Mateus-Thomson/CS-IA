@@ -1,5 +1,6 @@
-from libs import *
-from base import *
+from scripts.libs import *
+from scripts.base import *
+
 class Cycle(Base):
     '''Operates and handles all generation commands. Extends Base.'''
     def __init__(self):
