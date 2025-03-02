@@ -1,37 +1,29 @@
-import pygame as pg
-import pygame.draw
-from bitarray import bitarray
-import math
+from libs import *
+from base import *
 
-size = 10
-grid = bitarray('0110100010111101100010011011010101010110101110110011100110110001010001010000110110110100010010101000')
-ps = '75-18-66-45-0000'
-
-class A_Star(object):
-    def __init__(self):
-        pass
-
-    def to_x(self, flat):
-        return flat%self.size[0]
-    def to_y(self, flat):
-        return flat//self.size[0]
+class A_Star(Base):
+    '''Class responsible for finding the best path from one point to another.'''
 
     def calc_G(self, pos):
-        return math.hypot(self.to_x(self.start) - self.to_x(pos), self.to_y(self.start) - self.to_y(pos))
+        '''Calculate G cost (distance from start to input pos).'''
+        return math.dist(self.flat_to_coord(self.start,self.size), self.flat_to_coord(pos,self.size))
 
     def calc_H(self, pos):
-        return math.hypot(self.to_x(self.end) - self.to_x(pos), self.to_y(self.end) - self.to_y(pos))
+        '''Calculate H cost (distance from end to input pos).'''
+        return math.dist(self.flat_to_coord(self.end,self.size), self.flat_to_coord(pos,self.size))
 
     def calc_F(self, pos):
+        '''Calculate F cost (H + G cost).'''
         return self.calc_H(pos) + self.calc_G(pos)
 
     def fill_all_costs(self, pos):
+        '''Find the G,H, and F cost for input pos and add it to their respective boards.'''
         self.GBoard.update({f'{pos}':self.calc_G(pos)})
         self.HBoard.update({f'{pos}': self.calc_H(pos)})
         self.FBoard.update({f'{pos}': self.calc_F(pos)})
 
-    def get_path(self, input_board, start, end, size):
-        #create boards
+    def initialize(self,input_board, start, end, size):
+        '''Intializes all needed variables before searching for a path.'''
         self.GBoard = {}
         self.HBoard = {}
         self.FBoard = {}
@@ -47,15 +39,25 @@ class A_Star(object):
 
         self.size = size
 
+    def get_path(self, input_board, start, end, size):
+        '''Returns a path from one point to another.'''
+        # initialize
+        self.initialize(input_board, start, end, size)
+
+        # get costs for current position
         self.fill_all_costs(self.cur)
+
+        # find path
         return self.loop()
 
     def get_max_values(self, dct):
+        '''Gets a list of the max values in an input dict.'''
         av = dict(filter(lambda x: int(x[0]) not in self.closedList, dct.items()))
         return list(filter(lambda x: x[1]==min(av.values()), av.items()))
 
     def get_sur(self, L):
-        row_clamp = (self.to_y(self.cur) * self.size[0], self.to_y(self.cur) * self.size[0] + self.size[0])
+        '''Gets the surrounding nodes around the current nodes, excluding the ones in input L.'''
+        row_clamp = (self.flat_to_y(self.cur,self.size) * self.size[0], self.flat_to_y(self.cur,self.size) * self.size[0] + self.size[0])
         sur = [min(max(self.cur - 1, row_clamp[0]), row_clamp[1]-1),
                min(max(self.cur + 1, row_clamp[0]), row_clamp[1]-1), self.cur + self.size[0],
                self.cur - self.size[0]]
@@ -63,83 +65,48 @@ class A_Star(object):
         return list(filter(lambda x: x >= 0 and x!=self.cur and x< len(self.board) and x not in L and self.board[x] == 0 and x in self.whitelist, sur))
 
     def loop(self):
-        while True:
-
+        '''The loop that goes through the process of finding the path.'''
+        while True: # finding start to end through closedList
             self.closedList.append(self.cur)
 
+            # find surrounding nodes not already in closedList
             valid_sur = self.get_sur(self.closedList)
 
+            # fill costs for each surrounding node
             for item in valid_sur:
                 self.fill_all_costs(item)
 
-            mx = self.get_max_values(self.FBoard)
+
+            mx = self.get_max_values(self.FBoard) # get the max values of FBoard
             if len(mx)!= 1:
-                mx = self.get_max_values(self.HBoard)
+                mx = self.get_max_values(self.GBoard)  # if there's more than one max FCost, get the max values of GBoard
                 if len(mx) != 1:
-                    mx = self.get_max_values(self.GBoard)
+                    mx = self.get_max_values(self.HBoard) # if theres more than one max GCost, get the max values of HBoard
 
-            if mx==[]: return []
+            if mx==[]: return []  # if there are no max values to be found, that means that there's no valid path.
 
-            self.cur = int(mx[0][0])
+            self.cur = int(mx[0][0]) # set cur to max value (disregards if there's more than one max HCost, simply picks the first one available
 
-            if self.cur == self.end:
+            if self.cur == self.end: # break the loop if current node is the end node. Means the closedList has reached the end.
                 break
 
-        self.closedList.append(self.cur)
-
-        self.whitelist = self.closedList
+        self.closedList.append(self.cur) # adds current node (aka end) to closedList so its complete
+        self.whitelist = self.closedList # creates whitelist
 
 
         self.cur = self.end
-        while True:
-            if self.cur == self.start:
+        while True: # goes through closedList again to find the final path
+            if self.cur == self.start: # path is complete
                 break
             else:
                 valid_sur = self.get_sur(self.path)
-                if valid_sur == []:
+                if valid_sur == []: # if valid_sur == [], it means its a dead end and that that point should no longer be on the whitelist.
                     self.whitelist.remove(self.cur)
                     self.cur = self.end
-                    self.path=[]
+                    self.path=[] # reset the path and try again
                 else:
-                    self.path.append(self.cur)
-                    HCosts = [(self.HBoard[f'{item}'], item) for item in valid_sur]
-                    self.cur = max(HCosts)[1]
+                    self.path.append(self.cur) # add current node to path
+                    FCosts = [(self.FBoard[f'{item}'], item) for item in valid_sur]
+                    self.cur = max(FCosts)[1] # new node equals the highest FCost
         self.path.append(self.cur)
         return self.path
-        #[78, 77, 76, 66]
-
-AStar = A_Star()
-
-
-window = pg.display.set_mode((500,500))
-m = 20
-
-paths = []
-from itertools import combinations
-
-for set in list(combinations(ps.split('-')[:-1],2)):
-    paths.append(AStar.get_path(grid, int(set[0]), int(set[1]), [size,size]))
-
-while False:
-    window.fill((60,60,60))
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            exit()
-
-    for idx, item in enumerate(grid):
-
-        x = idx%size
-        y = idx//size
-        color = (255*item,255*item,255*item)
-        if str(idx) in ps.split('-')[:-1]:
-            color = (255,0,0)
-        pygame.draw.rect(window, color, (x*m+10,y*m+10,m,m))
-
-        if idx in AStar.closedList:
-            pygame.draw.rect(window, (0, 0,255), (x * m + 10, y * m + 10, m, m), 1)
-        for p, path in enumerate(paths):
-            if idx in path:
-                pygame.draw.rect(window, (0,255,0), (x * m + 10, y * m + 10, m, m), 1)
-
-
-    pygame.display.flip()

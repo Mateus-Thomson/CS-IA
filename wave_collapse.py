@@ -1,20 +1,20 @@
-import random
-
-from bitarray import bitarray
-from itertools import combinations
-from pathfinding import *
-import math
-
+from libs import *
 from chunk_operator import *
+from pathfinding import *
+
 class WaveChunks(Chunk_Operator):
+    '''Operates the wave collapse algorithm. Extends Chunk_Operator.'''
     def __init__(self, c_size, b_size):
+        '''Constructs the essential variables and initalizes the Chunk_Operator Extension.'''
         Chunk_Operator.__init__(self,c_size)
 
         self.board_filled = bitarray('0'*(b_size[0]*b_size[1]))
         self.chunks = bitarray('0'*(c_size[0]*c_size[1])*(b_size[0]*b_size[1]))
-        self.chunkPs = np.full((b_size[0]*b_size[1]), 'x'*(len(f'{self.chunk_amt()}')*4+8))
+        self.chunkPs = np.full((b_size[0]*b_size[1]), 'x'*(len(f'{self.size[0]*self.size[1]}')*4+20))
         self.cur_chunk = 0
+        # size of the board. (basically how many chunks the board is made out of)
         self.b_size = b_size
+        # NOTE: self.b_size = board_size, self.size = chunk_size
 
         self.free_spaces = {}
 
@@ -24,15 +24,29 @@ class WaveChunks(Chunk_Operator):
             "lkU":None,
             "lkD":self.area()-random.randint(1,c_size[0]),
         }
+
+        self.ex_chunk = bitarray('')
+        self.cur_comb = 0
+        self.optimal_path = []
+        self.optimal_length = 0
+        self.optimal_route = []
+        self.final_comb = None
+
     def full_size(self):
+        '''Returns the full size of the board.'''
         return [self.size[0]*self.b_size[0],self.size[1]*self.b_size[1]]
 
     def find_empty_chunks(self):
+        '''Returns the positions of empty chunks.'''
         empties = []
         for i,item in enumerate(self.board_filled):
             if item == 0: empties.append(i)
         return empties
+
     def make_new_request(self):
+        '''Creates a new request for the next chunk generation to follow.'''
+
+        # create all possible spaces
         add_spaces = {}
         if self.cr['lkL']:
             add_spaces.update({f'{self.cur_chunk - 1}': {"lkR":self.cr['lkL']+(self.size[0]-1)}})
@@ -43,19 +57,20 @@ class WaveChunks(Chunk_Operator):
         if self.cr['lkD']:
             add_spaces.update({f'{self.cur_chunk + self.b_size[0]}': {"lkU": self.cr['lkD']-self.area()+self.size[0]-1}})
 
+        # ensure that the spaces are valid
         for space in add_spaces:
-
             if int(space)<self.b_size[0]*self.b_size[1] and self.board_filled[int(space)] == 0:
                 if space in self.free_spaces.keys():
                     self.free_spaces[space] = add_spaces[space] | self.free_spaces[space]
                 else:
                     self.free_spaces.update({space: add_spaces[space]})
 
+
         choices = list(self.free_spaces.keys())
-        if choices!=[]:
+        if choices!=[]: # randomly chose what lock to use
             self.cur_chunk = int(random.choice(choices))
             new_cr = self.free_spaces[str(self.cur_chunk)]
-        else:
+        else: # if there are no locks just create a chunk without it
             choices=self.find_empty_chunks()
             if choices==[]:
                 choices = [0]
@@ -64,13 +79,12 @@ class WaveChunks(Chunk_Operator):
 
         self.cr = {"lkL": None,"lkR": None,"lkU": None,"lkD": None,}
 
+        # add new locks on top of the existing ones
         add_locks = random.randint(1,2)
         for space in new_cr:
             self.cr[space] = new_cr[space]
-
         keys = list(self.cr.keys())
         random.shuffle(keys)
-
         for space in dict([(key, self.cr[key]) for key in keys]):
             if self.cr[space] ==None and add_locks>0:
                 if space=='lkL' and self.cur_chunk%self.b_size[0]!=0:
@@ -85,76 +99,56 @@ class WaveChunks(Chunk_Operator):
                 elif space=='lkD' and self.cur_chunk<self.area()-self.b_size[0]+1:
                     self.cr[space]=self.area()-random.randint(1,self.size[0]-1)
                     add_locks-=1
-
         if str(self.cur_chunk) in self.free_spaces.keys():
             self.free_spaces.pop(str(self.cur_chunk))
+
     def append_chunk(self, new_chunk, point):
+        '''Add a new chunk to the board and call for a new request.'''
         self.set_chunk(self.cur_chunk, new_chunk)
         self.board_filled[self.cur_chunk] = 1
         self.chunkPs[self.cur_chunk] = point
+
         self.make_new_request()
 
     def export_chunk(self, imgs, settings):
-        export_chunk = bitarray('')
+        '''Creates a final chunk to export. Also creates the combinations needed to find hence path.'''
+
+        # create export_chunk
+        self.ex_chunk = bitarray('')
         export_points  = []
         render_exchunk = pygame.surface.Surface(self.full_size())
         for i, img in enumerate(imgs):
             t_img = pygame.transform.scale(img, (img.get_width() / self.imgMlt, img.get_height() / self.imgMlt))
-            points = self.chunkPs[i].split('-')
-            for p, point in enumerate(points[:-1]):
-                print(point, points[-1])
             render_exchunk.blit(t_img,((i % self.b_size[0]) * (self.size[0]), (i // self.b_size[1]) * (self.size[1])))
-
         for y in range(render_exchunk.get_height()):
             for x in range(render_exchunk.get_width()):
-                if render_exchunk.get_at((x,y))==(255,255,255): export_chunk+='1'
-                else:export_chunk+='0'
+                if render_exchunk.get_at((x,y))==(255,255,255): self.ex_chunk+='1'
+                else:self.ex_chunk+='0'
         for y in range(render_exchunk.get_height()):
             for x in range(render_exchunk.get_width()):
                 if render_exchunk.get_at((x,y))==(255,0,0):
-                    export_chunk[self.to_flat_point([x,y])] = 0
+                    self.ex_chunk[self.coord_to_flat([x,y], self.full_size())] = 0
                     export_points.append([x,y])
+                    render_exchunk.set_at((x,y), (0, 0, 0))
 
-        if len(export_points)>settings["maxPoints"]:
-            export_points = export_points[:settings["maxPoints"]]
+        # create combinations
+        self.final_comb  = combinations(export_points, 2)
 
-        for point in export_points:
-            render_exchunk.set_at(point, (60,60,60))
+        # skip combinations that are too close to each other.
+        skips = set()
+        for com in self.final_comb :
+            if (math.dist(com[0],com[1])) < settings["minDist"]:
+                skips.add(tuple(com[0]))
+        for skip in skips:
+            export_points.remove(list(skip))
 
-        optimal_path = []
-        optimal_length = 0
-        for set in list(combinations(export_points, 2)):
-            if math.dist(set[0], set[1])>self.size[0]*settings['minDistMulti']:
-                path = AStar.get_path(export_chunk, self.to_flat_point(set[0]), self.to_flat_point(set[1]), self.full_size())
-                if len(path)>optimal_length:
-                    optimal_path = [set[0],set[1]]
-                    optimal_length = len(path)
-            print(set)
+        # shuffle and limit the remaining combinations
+        self.final_comb  = list(combinations(export_points, 2))
+        random.shuffle(self.final_comb)
+        self.final_comb  = self.final_comb[:settings["maxComp"]]
 
-        for set in optimal_path:
-            render_exchunk.set_at(set, (255,255,0))
+        return render_exchunk
 
-        render_exchunk = pygame.transform.scale(render_exchunk, (render_exchunk.get_width() * self.imgMlt, render_exchunk.get_height() * self.imgMlt))
-        return export_chunk, export_points, render_exchunk
 
-    def create_chunk_imgs(self):
-        imgs = []
-        for idx in range(self.b_size[0]*self.b_size[1]):
-            img = pygame.surface.Surface((self.size[0], self.size[1]))
-            if self.board_filled[idx]==1:
-                img.fill((255,255,255))
-
-                for y in range(self.size[1]):
-                    for x in range(self.size[0]):
-                        r = self.get_chunk_cell(idx, y, x)
-                        img.set_at((x, y), (255*r, 255*r, 255*r))
-
-                points = self.chunkPs[idx].split('-')
-
-                for point in list(int(i) for i in points[:-1]):
-                    img.set_at((point % self.size[0], point // self.size[1]), (255, 0, 0))
-            imgs.append(pygame.transform.scale(img, (self.size[0] * self.imgMlt, self.size[1] * self.imgMlt)))
-
-        return imgs
 
 wc = WaveChunks((10,10),(5,5))
