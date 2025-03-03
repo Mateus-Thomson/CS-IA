@@ -14,7 +14,11 @@ class Cycle(Base):
         self.exported = False
 
     def gen_text(self):
-        return self.font.render(f'Gen: {self.cur_gen}', False, (0, 0, 0))
+        '''Creates text showing the current generation.'''
+        text = self.font.render(f'Gen: {self.cur_gen}', False, (255,255,255))
+        surf = pygame.surface.Surface(text.get_size())
+        surf.blit(text, (0,0))
+        return surf
 
     def mutate(self, cOP, settings):
         '''Makes copies of existing chunks and mutates them'''
@@ -111,14 +115,14 @@ class Cycle(Base):
         # ---NEW CHUNKS---
         cOP = self.new_chunks(cOP, wc, settings['pop_Per_Gen'])
 
-        # --- REMOVE DUPLICATES ---
-        cOP = self.remove_dups(cOP)
-
         # bugfix --- fixes points sometimes overlapping with walls
         cOP.point_pos_fixer()
 
         # ---SORT and CLEAR---
         cOP = self.sort_and_clear(AStar, cOP)
+
+        # --- REMOVE DUPLICATES ---
+        cOP = self.remove_dups(cOP)
 
         # ---LIMIT---
         cOP = self.limit(cOP, settings)
@@ -151,12 +155,20 @@ class Cycle(Base):
         other_imgs = wc.create_chunk_imgs()
         return cOP, wc, other_imgs
 
-    def final_path_loop(self, tabs, wc, AStar):
+    def paths_text(self, wc):
+        '''Creates text showing the current paths.'''
+        text = self.font.render(f'{wc.cur_comb}/{len(wc.final_comb)}   MaxPath: {wc.optimal_length}', False, (255, 255, 255))
+        surf = pygame.surface.Surface(text.get_size())
+        surf.blit(text, (0, 0))
+        return surf
+
+    def final_path_loop(self, format, tabs, wc, AStar):
         '''Draw and find the best path in the completed board, and then export it.'''
 
         tabs[2].blit(pygame.transform.scale(self.render, (
         self.render.get_width() * wc.imgMlt, self.render.get_height() * wc.imgMlt)), (0, 0)) # draws current board
-        text = self.font.render(f'{wc.cur_comb}/{len(wc.final_comb)}   MaxPath: {wc.optimal_length}', False, (0, 0, 0))
+
+        text = self.paths_text(wc)
         tabs[2].blit(text, (0, tabs[2].get_height() - text.get_height())) # draws current statistics
 
         if wc.cur_comb < len(wc.final_comb):
@@ -193,6 +205,7 @@ class Cycle(Base):
         full_export = {"chunk": wc.ex_chunk.to01(), "points": wc.optimal_path,
                        "flat_points": [self.coord_to_flat(wc.optimal_path[0], wc.full_size()), self.coord_to_flat(wc.optimal_path[1], wc.full_size())],
                        "size": wc.full_size(), "time_taken": f'{h}h{m}m{s}s'}
+        print(format)
         if format == "json":
             with open('export.json', 'w') as f:
                 json.dump(full_export, f, indent=4)

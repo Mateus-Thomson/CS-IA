@@ -27,6 +27,6 @@
 * maxComp | INT
   * The maximum ammount of comparisons taken when searching for a final path. 
 
-
+USE THE 1, 2, and 3 KEYS TO CHANGE TABS ONCE YOU CONFIRM YOUR SETTINGS.
 
 

@@ -100,13 +100,14 @@ class A_Star(Base):
                 break
             else:
                 valid_sur = self.get_sur(self.path)
-                if valid_sur == []: # if valid_sur == [], it means its a dead end and that that point should no longer be on the whitelist.
+                if valid_sur == []: # if valid_sur == [], it means it's a dead end and that that point should no longer be on the whitelist.
                     self.whitelist.remove(self.cur)
                     self.cur = self.end
                     self.path=[] # reset the path and try again
                 else:
                     self.path.append(self.cur) # add current node to path
-                    FCosts = [(self.FBoard[f'{item}'], item) for item in valid_sur]
-                    self.cur = max(FCosts)[1] # new node equals the highest FCost
+                    GCosts = [(self.GBoard[f'{item}'], item) for item in valid_sur]
+                    self.cur = min(GCosts)[1] # new node equals the lowest GCost
         self.path.append(self.cur)
         return self.path
+

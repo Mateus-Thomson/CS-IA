@@ -71,6 +71,7 @@ class Chunk_Operator(Base):
 
             #draw points
             points = self.chunkPs[idx].split('-')
+            points = self.remove_empties(points)
             for point in list(int(i) for i in points[:-1]):
                 img.set_at((point%self.size[0],point//self.size[1]), (255,0,0))
 
@@ -87,10 +88,10 @@ class Chunk_Operator(Base):
         add = index * self.area()
         return self.chunks[row*self.size[0]+col+add]
 
-    def get_chunk_cell_flat(self, index, pos):
+    def get_chunk_cell_flat(self, index, flat):
         '''Inputs an index and flat position and outputs chunk cell.'''
         add = index * self.area()
-        return self.chunks[add + pos]
+        return self.chunks[add + flat]
 
     def set_chunk(self, index, val):
         '''Inputs an index and value and redefines a chunk.'''
@@ -101,10 +102,10 @@ class Chunk_Operator(Base):
         add = index * self.area()
         self.chunks[row*self.size[0]+col+add] = val
 
-    def set_chunk_cell_flat(self, index, pos, val):
+    def set_chunk_cell_flat(self, index, flat, val):
         '''Inputs an index, flat position, and value, and redefines a chunk cell.'''
         add = index * self.area()
-        self.chunks[add + pos] = val
+        self.chunks[add + flat] = val
 
     def reorder_chunks(self, orderList):
         '''Inputs an order list and reorders chunks based aforementioned list.'''

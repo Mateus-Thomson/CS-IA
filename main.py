@@ -52,9 +52,9 @@ gtext = cycle.gen_text()
 
 while True:
     # fill tab bgs
-    tabs[0].fill((0,60,60))
-    tabs[1].fill((60, 60, 0))
-    tabs[2].fill((0, 60, 60))
+    tabs[0].fill((0,120,120))
+    tabs[1].fill((120, 120, 0))
+    tabs[2].fill((120, 0, 120))
 
     # keep up the generation cycle as long as the board has spaces
     if 0 in wc.board_filled:
@@ -93,7 +93,7 @@ while True:
 
     # loop for searching for the final path
     if cycle.final:
-        cycle.final_path_loop(tabs, wc, AStar)
+        cycle.final_path_loop(format, tabs, wc, AStar)
 
     # keys for switching between tabs
     for event in pg.event.get():
