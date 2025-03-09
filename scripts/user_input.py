@@ -1,7 +1,7 @@
 from tkinter import *
 
 can_float = ['m_cPower', 'm_pPower'] # inputs that can be floats
-format_options = ["json","txt","image"]
+format_options = ["json","txt","image", "txtboard", "listboard"]
 
 def user_input(settings):
     '''Creates the input window for the user to enter their own setting preferences.'''

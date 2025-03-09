@@ -1,3 +1,5 @@
+from gettext import translation
+
 from scripts.libs import *
 from scripts.base import *
 
@@ -204,15 +206,40 @@ class Cycle(Base):
 
         full_export = {"chunk": wc.ex_chunk.to01(), "points": wc.optimal_path,
                        "flat_points": [self.coord_to_flat(wc.optimal_path[0], wc.full_size()), self.coord_to_flat(wc.optimal_path[1], wc.full_size())],
-                       "size": wc.full_size(), "time_taken": f'{h}h{m}m{s}s'}
-        print(format)
-        if format == "json":
-            with open('export.json', 'w') as f:
-                json.dump(full_export, f, indent=4)
-        if format == "txt":
+                       "size": wc.full_size(), "time_taken": f'{h}h {m}m {s}s'}
+
+        if format in ["txtboard", "image", "listboard"]: # remove path visibility
+            ex_render = render.copy()
+            for y in range(ex_render.get_height()):
+                for x in range(ex_render.get_width()):
+                    if render.get_at((x, y)) not in [(0,0,0), (255,0,0), (255,255,255)]:
+                        ex_render.set_at((x,y), (0,0,0))
+
+        if format in ["txtboard", "listboard"]: # simplier exports need to be formatted correctly
+            string = ""
+            for y in range(ex_render.get_height()):
+                for x in range(ex_render.get_width()):
+                    if [x,y] in full_export["points"]:
+                        string+="2"
+                    else:
+                        string+= f'{int(ex_render.get_at((x,y))!=(0,0,0))}'
+                string += "\n"
+
+            if format== "listboard":
+                lst = [[int(v) for v in l] for l in [list(x) for x in string.split('\n')]]
+                with open('export.json', 'w') as f:
+                    f.write(pprint.pformat(lst, compact=True))
+            else: # txtboard
+                with open('export.txt', 'w') as f: f.write(string)
+        elif format == "image":
+            pg.image.save(ex_render, 'export.png')
+
+        elif format == "txt":
             with open('export.txt', 'w') as f:
                 f.write(
                     f"chunk:\n{full_export["chunk"]}\npoints:\n{full_export["points"]}\nflat_points:\n{full_export["flat_points"]}\nsize:\n{full_export["size"]}\ntime_taken:\n{full_export["time_taken"]}\n")
-        if format == "png":
-            pg.image.save(render, 'export.png')
+
+        else: # json
+            with open('export.json', 'w') as f:
+                f.write(pprint.pformat(full_export, compact=True).replace("'", '"'))
 
