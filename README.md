@@ -1,3 +1,7 @@
+## Installs
+* pip install bitarray==3.0.0
+* pip install numpy==2.2.1
+* pip install pygame-ce==2.5.2
 ## Settings
 
 * chunk_size | INT
